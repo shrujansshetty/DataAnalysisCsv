@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Data Analysis</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        .container {
+            width: 80%;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>CSV Data Analysis</h1>
+        <form id="uploadForm">
+            <label for="fileInput">Upload CSV file:</label>
+            <input type="file" id="fileInput" name="file" accept=".csv" required>
+            <button type="submit">Upload</button>
+            <div id="uploadError" class="error"></div>
+        </form>
+
+        <form id="analysisForm" style="display: none;">
+            <label for="analysis_type">Select Analysis Type:</label>
+            <select id="analysis_type" name="analysis_type" required>
+                <option value="pie">Pie Chart</option>
+                <!-- Add other analysis options if needed -->
+            </select>
+
+            <label for="fields">Select Field for Analysis:</label>
+            <select id="fields" name="fields" required></select>
+
+            <div id="labelFieldContainer" style="display: none;">
+                <label for="labelFields">Select Label Field:</label>
+                <select id="labelFields" name="labelFields" required></select>
+            </div>
+
+            <button type="submit">Analyze</button>
+        </form>
+
+        <div class="result" id="result"></div>
+        <div id="analysisError" class="error"></div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('uploadForm');
+        const analysisForm = document.getElementById('analysisForm');
+        const fieldsSelect = document.getElementById('fields');
+        const labelFieldsSelect = document.getElementById('labelFields');
+        const labelFieldContainer = document.getElementById('labelFieldContainer');
+        const resultDiv = document.getElementById('result');
+        const uploadErrorDiv = document.getElementById('uploadError');
+        const analysisErrorDiv = document.getElementById('analysisError');
+
+        uploadForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(uploadForm);
+
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    uploadErrorDiv.textContent = data.error;
+                } else {
+                    uploadErrorDiv.textContent = '';
+                    analysisForm.style.display = 'block';
+                    fieldsSelect.innerHTML = data.columns.map(column => `<option value="${column}">${column}</option>`).join('');
+                    labelFieldsSelect.innerHTML = data.columns.map(column => `<option value="${column}">${column}</option>`).join('');
+                }
+            })
+            .catch(error => {
+                uploadErrorDiv.textContent = 'An error occurred during file upload.';
+            });
+        });
+
+        fieldsSelect.addEventListener('change', function () {
+            const selectedField = this.value;
+            const isNumeric = !df[selectedField].isnull().all() && !isNaN(df[selectedField].mean());
+
+            if (isNumeric) {
+                labelFieldContainer.style.display = 'block';
+            } else {
+                labelFieldContainer.style.display = 'none';
+                labelFieldsSelect.value = ''; // Reset label field selection
+            }
+        });
+
+        analysisForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(analysisForm);
+
+            fetch('/analyze', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    analysisErrorDiv.textContent = data.error;
+                } else {
+                    analysisErrorDiv.textContent = '';
+                    resultDiv.innerHTML = `<img src="${data.image_url}" alt="Analysis Result">`;
+                }
+            })
+            .catch(error => {
+                analysisErrorDiv.textContent = 'An error occurred during analysis.';
+            });
+        });
+    </script>
+</body>
+</html>
